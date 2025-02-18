@@ -1,101 +1,175 @@
-import Image from "next/image";
+// app/page.tsx
+"use client"
+
+import { useState, useEffect } from "react"
+
+interface Ponto {
+  id: number
+  data: string
+  entrada: string
+  saida: string
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [data, setData] = useState("")
+  const [entrada, setEntrada] = useState("")
+  const [saida, setSaida] = useState("")
+  const [valorHora, setValorHora] = useState("45") // valor hora default
+  const [pontos, setPontos] = useState<Ponto[]>([])
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Carregar do localStorage ao montar
+  useEffect(() => {
+    const storagePontos = localStorage.getItem("pontos")
+    const storageValor = localStorage.getItem("valorHora")
+    if (storagePontos) {
+      setPontos(JSON.parse(storagePontos))
+    }
+    if (storageValor) {
+      setValorHora(storageValor)
+    }
+  }, [])
+
+  // Salvar no localStorage sempre que "pontos" mudar
+  useEffect(() => {
+    localStorage.setItem("pontos", JSON.stringify(pontos))
+  }, [pontos])
+
+  // Salvar no localStorage sempre que valorHora mudar
+  useEffect(() => {
+    localStorage.setItem("valorHora", valorHora)
+  }, [valorHora])
+
+  // Função para adicionar um novo ponto
+  function handleAddPonto() {
+    if (!data || !entrada || !saida) return
+    const novoPonto: Ponto = {
+      id: Date.now(),
+      data,
+      entrada,
+      saida,
+    }
+    setPontos([...pontos, novoPonto])
+    // Limpar campos
+    setData("")
+    setEntrada("")
+    setSaida("")
+  }
+
+  // Converter HH:MM em decimal (por ex, 2h30 -> 2.5)
+  function timeToDecimal(time: string) {
+    const [h, m] = time.split(":")
+    const hours = parseInt(h, 10)
+    const minutes = parseInt(m, 10)
+    return hours + minutes / 60
+  }
+
+  // Calcular total de horas
+  const totalHoras = pontos.reduce((acc, ponto) => {
+    const horaEntrada = timeToDecimal(ponto.entrada)
+    const horaSaida = timeToDecimal(ponto.saida)
+    const duracao = horaSaida - horaEntrada
+    return acc + (duracao > 0 ? duracao : 0)
+  }, 0)
+
+  const valorTotal = totalHoras * parseFloat(valorHora)
+
+  // Excluir um ponto
+  function handleDeletePonto(id: number) {
+    setPontos(pontos.filter((p) => p.id !== id))
+  }
+
+  return (
+    <main className="container mx-auto py-8 px-4">
+      <h1 className="text-2xl font-bold mb-4">Controle de Horas</h1>
+
+      {/* Formulário */}
+      <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-white max-w-md">
+        <div className="flex flex-col mb-2">
+          <label htmlFor="data" className="font-semibold mb-1">Data</label>
+          <input
+            type="date"
+            id="data"
+            className="border px-2 py-1 rounded"
+            value={data}
+            onChange={(e) => setData(e.target.value)}
+          />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+
+        <div className="flex flex-col mb-2">
+          <label htmlFor="entrada" className="font-semibold mb-1">Entrada</label>
+          <input
+            type="time"
+            id="entrada"
+            className="border px-2 py-1 rounded"
+            value={entrada}
+            onChange={(e) => setEntrada(e.target.value)}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+        </div>
+
+        <div className="flex flex-col mb-4">
+          <label htmlFor="saida" className="font-semibold mb-1">Saída</label>
+          <input
+            type="time"
+            id="saida"
+            className="border px-2 py-1 rounded"
+            value={saida}
+            onChange={(e) => setSaida(e.target.value)}
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        </div>
+
+        <button
+          onClick={handleAddPonto}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-500"
         >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+          Adicionar Ponto
+        </button>
+      </div>
+
+      {/* Lista de Pontos */}
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold mb-2">Meus Pontos</h2>
+        <div className="space-y-2">
+          {pontos.map((ponto) => (
+            <div key={ponto.id} className="flex items-center justify-between bg-white p-3 rounded shadow-sm">
+              <div>
+                <p className="font-medium">{ponto.data}</p>
+                <p className="text-sm">Entrada: {ponto.entrada} - Saída: {ponto.saida}</p>
+              </div>
+              <button
+                onClick={() => handleDeletePonto(ponto.id)}
+                className="text-red-600 hover:text-red-800"
+              >
+                Excluir
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Valor da Hora */}
+      <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-white max-w-md">
+        <label htmlFor="valorHora" className="block font-semibold mb-1">Valor da Hora (R$)</label>
+        <input
+          type="number"
+          id="valorHora"
+          className="border px-2 py-1 rounded w-full"
+          step="0.01"
+          value={valorHora}
+          onChange={(e) => setValorHora(e.target.value)}
+        />
+      </div>
+
+      {/* Resultado */}
+      <div className="p-4 border border-gray-200 rounded-lg bg-white max-w-md">
+        <p className="mb-2">
+          <span className="font-semibold">Total de Horas:</span>{" "}
+          {totalHoras.toFixed(2)}h
+        </p>
+        <p className="mb-2">
+          <span className="font-semibold">Valor Total:</span>{" "}
+          R$ {valorTotal.toFixed(2)}
+        </p>
+      </div>
+    </main>
+  )
 }
